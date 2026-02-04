@@ -39,7 +39,7 @@ Make sure OpenClaw is running and accessible at `ws://127.0.0.1:18789`.
 ### 3. Configure the Omi OpenClaw App
 
 1. Open the Omi app
-2. Go to **Apps** → Search for **"OpenClaw Assistant"**
+2. Install the **OpenClaw** app from [https://h.omi.me/apps/01KGAFFKFPGJ46690FD981N05F](https://h.omi.me/apps/01KGAFFKFPGJ46690FD981N05F)
 3. Enable the app and click **Configure**
 4. Enter your ngrok URL (see step 5)
 5. **Save the secret token** that's displayed - you'll need it next!
@@ -85,6 +85,11 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENCLAW_WS_URL` | `ws://127.0.0.1:18789` | OpenClaw WebSocket URL |
+| `OPENCLAW_GATEWAY_TOKEN` | (empty) | OpenClaw Gateway auth token (from `gateway.auth.token` in OpenClaw config or `OPENCLAW_GATEWAY_TOKEN` env var in OpenClaw) |
+
+### Session Configuration
+
+By default, the bridge sends messages to the `main` session in OpenClaw. If you want to use a different session, you can modify the `sessionKey` parameter in `bridge/openclaw_client.py`.
 | `BRIDGE_HOST` | `0.0.0.0` | Bridge server host |
 | `BRIDGE_PORT` | `8081` | Bridge server port |
 | `OMI_SECRET_TOKEN` | (empty) | **Required** - Token from Omi app setup |
