@@ -44,12 +44,13 @@ Make sure OpenClaw is running and accessible at `ws://127.0.0.1:18789`.
 4. Enter your ngrok URL (see step 5)
 5. **Save the secret token** that's displayed - you'll need it next!
 
-### 4. Set the secret token
+### 4. Configure environment
 
 Create a `.env` file in the `openclaw-bridge` directory:
 
 ```bash
 OMI_SECRET_TOKEN=oc_your_token_here
+OPENCLAW_GATEWAY_TOKEN=your_openclaw_gateway_token  # If OpenClaw has gateway auth enabled
 ```
 
 ### 5. Start the bridge
@@ -86,14 +87,14 @@ Environment variables:
 |----------|---------|-------------|
 | `OPENCLAW_WS_URL` | `ws://127.0.0.1:18789` | OpenClaw WebSocket URL |
 | `OPENCLAW_GATEWAY_TOKEN` | (empty) | OpenClaw Gateway auth token (from `gateway.auth.token` in OpenClaw config or `OPENCLAW_GATEWAY_TOKEN` env var in OpenClaw) |
-
-### Session Configuration
-
-By default, the bridge sends messages to the `main` session in OpenClaw. If you want to use a different session, you can modify the `sessionKey` parameter in `bridge/openclaw_client.py`.
 | `BRIDGE_HOST` | `0.0.0.0` | Bridge server host |
 | `BRIDGE_PORT` | `8081` | Bridge server port |
 | `OMI_SECRET_TOKEN` | (empty) | **Required** - Token from Omi app setup |
 | `OPENCLAW_TIMEOUT` | `120.0` | Request timeout in seconds |
+
+### Session Configuration
+
+By default, the bridge sends messages to the `agent:main:main` session in OpenClaw. If you want to use a different session, you can modify the `sessionKey` parameter in `bridge/openclaw_client.py`.
 
 ## API Endpoints
 
