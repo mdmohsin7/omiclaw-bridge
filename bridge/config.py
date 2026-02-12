@@ -14,5 +14,14 @@ BRIDGE_PORT = int(os.getenv("BRIDGE_PORT", "8081"))
 # Set it here to verify incoming requests
 OMI_SECRET_TOKEN = os.getenv("OMI_SECRET_TOKEN", "")
 
+# OpenClaw session key to send messages to
+OPENCLAW_SESSION_KEY = os.getenv("OPENCLAW_SESSION_KEY", "agent:main:main")
+
 # Request timeout for OpenClaw (in seconds)
 OPENCLAW_TIMEOUT = float(os.getenv("OPENCLAW_TIMEOUT", "120.0"))
+
+# Threshold for switching to background mode (in seconds)
+# If OpenClaw doesn't respond with a final answer within this time,
+# return acknowledgment to user and continue waiting in background,
+# then send result via callback when complete
+QUICK_RESPONSE_TIMEOUT = float(os.getenv("QUICK_RESPONSE_TIMEOUT", "110.0"))
