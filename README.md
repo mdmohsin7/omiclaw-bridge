@@ -4,13 +4,22 @@ Local bridge service that connects [Omi](https://omi.me) to your local [OpenClaw
 
 ## What is this?
 
-This bridge runs on your local machine and receives requests from the Omi OpenClaw App, forwarding them to your local OpenClaw instance.
+This bridge runs on your local machine and receives requests from the Omi OpenClaw App, forwarding them to your local OpenClaw instance via a persistent WebSocket connection.
 
 ```
 Omi App → Omi Backend → OpenClaw App (hosted) → This Bridge (local) → OpenClaw (local)
                                                       ↑
                                               You run this!
 ```
+
+### How it works
+
+1. On startup, the bridge connects to OpenClaw via WebSocket and keeps the connection alive
+2. When Omi sends a request, the bridge forwards it to OpenClaw and waits for a response
+3. If OpenClaw responds quickly (within `QUICK_RESPONSE_TIMEOUT`), the result is returned directly
+4. If the task takes longer, the bridge returns an acknowledgment and continues in the background — when the result arrives, it's sent back via callback
+5. If OpenClaw spawns embedded agents (e.g., a research agent), the bridge stays connected and catches follow-up results, sending them via callback as well
+6. If the connection drops, the bridge auto-reconnects with exponential backoff
 
 ## Prerequisites
 
@@ -59,7 +68,7 @@ OPENCLAW_GATEWAY_TOKEN=your_openclaw_gateway_token  # If OpenClaw has gateway au
 python -m bridge
 ```
 
-The bridge will start on `http://localhost:8081`.
+The bridge will start on `http://localhost:8081` and automatically connect to OpenClaw.
 
 ### 6. Expose via ngrok
 
@@ -86,15 +95,14 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENCLAW_WS_URL` | `ws://127.0.0.1:18789` | OpenClaw WebSocket URL |
-| `OPENCLAW_GATEWAY_TOKEN` | (empty) | OpenClaw Gateway auth token (from `gateway.auth.token` in OpenClaw config or `OPENCLAW_GATEWAY_TOKEN` env var in OpenClaw) |
+| `OPENCLAW_GATEWAY_TOKEN` | (empty) | OpenClaw Gateway auth token |
+| `OPENCLAW_SESSION_KEY` | `agent:main:main` | OpenClaw session key to send messages to |
 | `BRIDGE_HOST` | `0.0.0.0` | Bridge server host |
 | `BRIDGE_PORT` | `8081` | Bridge server port |
 | `OMI_SECRET_TOKEN` | (empty) | **Required** - Token from Omi app setup |
-| `OPENCLAW_TIMEOUT` | `120.0` | Request timeout in seconds |
-
-### Session Configuration
-
-By default, the bridge sends messages to the `agent:main:main` session in OpenClaw. If you want to use a different session, you can modify the `sessionKey` parameter in `bridge/openclaw_client.py`.
+| `OPENCLAW_TIMEOUT` | `120.0` | Max time to wait for OpenClaw response (seconds) |
+| `QUICK_RESPONSE_TIMEOUT` | `110.0` | Time before switching to background mode (seconds) |
+| `FOLLOWUP_IDLE_TIMEOUT` | `180.0` | How long to listen for follow-up results after a response (seconds) |
 
 ## API Endpoints
 
@@ -106,19 +114,31 @@ Receives tool invocation requests from the Omi OpenClaw App.
 ```json
 {
   "request": "find files about quarterly report",
-  "uid": "user_firebase_uid"
+  "uid": "user_firebase_uid",
+  "callback_url": "https://omiclaw-app.example.com/callback/task-complete"
 }
 ```
 
 **Headers:**
 - `X-Omi-Token`: Secret token for verification
 
-**Response:**
+**Response (immediate):**
 ```json
 {
-  "result": "Found 3 files matching 'quarterly report': report_q1.pdf, report_q2.xlsx, report_q3.docx"
+  "result": "Found 3 files matching 'quarterly report': report_q1.pdf, report_q2.xlsx, report_q3.docx",
+  "is_background": false
 }
 ```
+
+**Response (background):**
+```json
+{
+  "result": "OpenClaw is working on this task and will send the result directly when complete. No further action needed.",
+  "is_background": true
+}
+```
+
+When `is_background` is true, the bridge will POST the result to `callback_url` when the task completes.
 
 ### `GET /health`
 
@@ -171,6 +191,10 @@ OpenClaw may be taking too long to process. Try:
 1. Simplify your request
 2. Increase `OPENCLAW_TIMEOUT` environment variable
 3. Check OpenClaw logs for errors
+
+### Bridge disconnects from OpenClaw
+
+The bridge auto-reconnects with exponential backoff (1s, 2s, 4s, ... up to 30s). Check the bridge logs for reconnection attempts. If OpenClaw is restarted, the bridge will reconnect automatically.
 
 ## Development
 
